@@ -2659,7 +2659,7 @@ static inline void ComputeTwoPlusOneTripleProductD(const double* bb, const doubl
 #endif
 
 // Product of the likelihoods with exponents tracked separately, then one log.
-static inline double SumLogsOfLikelihoodsD(const double* yy, const double* pp, uint32_t sample_ct) {
+double ComputeLoglikD(const double* yy, const double* pp, uint32_t sample_ct) {
   const uint64_t kMantMask = (1LLU << 52) - 1;
   const uint64_t kOneBits = 0x3ff0000000000000LLU;
   double accs[4] = {1.0, 1.0, 1.0, 1.0};
@@ -2669,11 +2669,11 @@ static inline double SumLogsOfLikelihoodsD(const double* yy, const double* pp, u
     const double new_pi = pp[sample_idx];
     const uint32_t is_case = (yy[sample_idx] != 0.0);
     const double qq = is_case? new_pi : (1.0 - new_pi);
-    if (unlikely(!((qq >= DBL_MIN) && (qq <= 1.0)))) {
+    if (!((qq >= DBL_MIN) && (qq <= 1.0))) {
       loglik += is_case? log(new_pi) : log1p(-new_pi);
       continue;
     }
-    const uint32_t acc_idx = sample_idx % 4;
+    const uint32_t acc_idx = sample_idx & 3;
     uint64_t qbits;
     memcpy(&qbits, &qq, 8);
     double qmant;
@@ -2690,10 +2690,6 @@ static inline double SumLogsOfLikelihoodsD(const double* yy, const double* pp, u
   return loglik + log((accs[0] * accs[1]) * (accs[2] * accs[3])) + S_CAST(double, expo_sum) * kLn2;
 }
 
-double ComputeLoglikD(const double* yy, const double* pp, uint32_t sample_ct) {
-  return SumLogsOfLikelihoodsD(yy, pp, sample_ct);
-}
-
 BoolErr ComputeLoglikCheckedD(const double* yy, const double* pp, uint32_t sample_ct, double* loglik_ptr) {
   for (uint32_t sample_idx = 0; sample_idx != sample_ct; ++sample_idx) {
     const double new_pi = pp[sample_idx];
@@ -2702,7 +2698,7 @@ BoolErr ComputeLoglikCheckedD(const double* yy, const double* pp, uint32_t sampl
       return 1;
     }
   }
-  *loglik_ptr = SumLogsOfLikelihoodsD(yy, pp, sample_ct);
+  *loglik_ptr = ComputeLoglikD(yy, pp, sample_ct);
   return 0;
 }
 
