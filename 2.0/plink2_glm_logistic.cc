@@ -2668,14 +2668,20 @@ double ComputeLoglikD(const double* yy, const double* pp, uint32_t sample_ct) {
   for (uint32_t sample_idx = 0; sample_idx != sample_ct; ++sample_idx) {
     const double new_pi = pp[sample_idx];
     const uint32_t is_case = (yy[sample_idx] != 0.0);
-    const double qq = is_case? new_pi : (1.0 - new_pi);
-    if (!((qq >= DBL_MIN) && (qq <= 1.0))) {
+    const double ctrl_q = 1.0 - new_pi;
+    uint64_t pi_bits;
+    uint64_t ctrl_bits;
+    memcpy(&pi_bits, &new_pi, 8);
+    memcpy(&ctrl_bits, &ctrl_q, 8);
+    // Bitwise select, as gcc turns a ternary here into an unpredictable branch
+    const uint64_t case_mask = -S_CAST(uint64_t, is_case);
+    const uint64_t qbits = (pi_bits & case_mask) | (ctrl_bits & (~case_mask));
+    const uint64_t biased_expo = qbits >> 52;
+    if ((!biased_expo) || (biased_expo >= 1023)) {
       loglik += is_case? log(new_pi) : log1p(-new_pi);
       continue;
     }
     const uint32_t acc_idx = sample_idx & 3;
-    uint64_t qbits;
-    memcpy(&qbits, &qq, 8);
     double qmant;
     const uint64_t qmant_bits = (qbits & kMantMask) | kOneBits;
     memcpy(&qmant, &qmant_bits, 8);
