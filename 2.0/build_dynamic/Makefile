@@ -50,6 +50,7 @@ include ../Makefile.src
 
 CFLAGS ?=
 CXXFLAGS ?=
+MAC_NEW_LAPACK ?= -DACCELERATE_NEW_LAPACK
 LDFLAGS ?=
 LDLIBS = -lm -lpthread ${DEBUG}
 ZLIB=
@@ -152,7 +153,7 @@ ifeq ($(UNAME), Darwin)
   endif
   BLASLIBS = -framework Accelerate
   CFLAGS += -I/usr/local/include
-  CXXFLAGS += -I/usr/local/include -stdlib=libc++ -DACCELERATE_NEW_LAPACK
+  CXXFLAGS += -I/usr/local/include -stdlib=libc++ ${MAC_NEW_LAPACK}
   LDFLAGS += -L/usr/local/lib
   LIBTOOL=libtool
   STATIC=-static
