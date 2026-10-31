@@ -114,7 +114,7 @@ CXXFLAGS += -O2
 
 ## Update:
 BLASFLAGS =
-BLASLIBS = -llapacke -llapack -lopenblas
+BLASLIBS ?= -llapacke -llapack -lopenblas
 
 ###########################
 
